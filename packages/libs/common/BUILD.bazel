@@ -1,0 +1,8 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "common",
+    srcs = ["invoice_id_generator.go"],
+    importpath = "github.com/pinkey-ltd/jamin/packages/libs/common",
+    visibility = ["//visibility:public"],
+)

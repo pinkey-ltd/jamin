@@ -1,0 +1,5 @@
+# Enable Bzlmod for every Bazel command
+common --enable_bzlmod
+build --action_env=GOPROXY=https://goproxy.cn
+test --action_env=GOPROXY=https://goproxy.cn
+run --action_env=GOPROXY=https://goproxy.cn
