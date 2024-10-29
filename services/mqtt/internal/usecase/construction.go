@@ -22,17 +22,40 @@ type ConstructionEntity struct {
 	ID              int64
 	Name            string
 	Status          ConstructionStatus
-	Adapter         string
+	DataAdapter     string
 	DataResource    ConstructionData
 	DataDestination ConstructionData
 	Args            string
 	Schema          string
+	SchemaAdapter   string
+	Runners         []*ConstructionRunnerEntity
 }
 
-func (c *ConstructionEntity) RestPath() string {
+type ConstructionCURDEntity struct {
+	ID              int64
+	Name            string
+	Status          ConstructionStatus
+	DataAdapter     string
+	DataResource    ConstructionData
+	DataDestination ConstructionData
+	Args            string
+	Schema          string
+	SchemaAdapter   string
+}
+
+func (c *ConstructionCURDEntity) RestPath() string {
 	return "construction"
 }
 
-func (c *ConstructionEntity) TableName() string {
+func (c *ConstructionCURDEntity) TableName() string {
 	return "mqtt_construction"
+}
+
+type ConstructionRunnerEntity struct {
+	ID             int64
+	Name           string
+	ContainerID    string
+	ConstructionID int64
+	Status         string
+	Comments       string
 }

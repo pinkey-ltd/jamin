@@ -17,6 +17,7 @@ func main() {
 
 	app.Run()
 }
+
 func subscriber(ctx *gofr.Context) (err error) {
 	telemetry := &repo.SchemaTest{}
 	if err = ctx.Bind(telemetry); err != nil {
