@@ -2,7 +2,6 @@ package service
 
 import (
 	"github.com/pinkey-ltd/jamin/services/mqtt/internal/adapter"
-	"github.com/pinkey-ltd/jamin/services/mqtt/internal/repo"
 	"github.com/pinkey-ltd/jamin/services/mqtt/internal/usecase"
 	"gofr.dev/pkg/gofr"
 	"strconv"
@@ -10,17 +9,21 @@ import (
 
 type ConstructionGetter interface {
 	GetById(ctx *gofr.Context, id int64) (*usecase.ConstructionEntity, error)
+	Update(ctx *gofr.Context, data *usecase.ConstructionEntity) (bool, error)
+	UpdateOrInsert(ctx *gofr.Context, data *usecase.ConstructionEntity) (bool, error)
 }
 
 type Construction struct {
-	repo ConstructionGetter
-	data *usecase.ConstructionEntity
+	repo    ConstructionGetter //interface
+	data    *usecase.ConstructionEntity
+	adapter adapter.Adapter //interface
 }
 
-func NewConstruction(repo repo.ConstructionRepo, data *usecase.ConstructionEntity) *Construction {
+func NewConstruction(repo ConstructionGetter, data *usecase.ConstructionEntity, adapter adapter.Adapter) *Construction {
 	return &Construction{
-		repo: repo,
-		data: data,
+		repo:    repo,
+		data:    data,
+		adapter: adapter,
 	}
 }
 
@@ -70,27 +73,60 @@ func (c *Construction) StartHandle(ctx *gofr.Context) (interface{}, error) {
 		ctx.Logger.Error("invalid status, can't to start", err)
 		return nil, err
 	}
-	d := adapter.DockerAdapter{}
-	if cid, err := d.RunContainer(ctx, c.data.DataAdapter, ""); err != nil {
+	// step 1 get raw data
+	if cid, err := c.adapter.RunContainer(ctx, c.data.DataAdapter, c.data.Name+"_data"); err != nil {
 		ctx.Logger.Error("can't start "+c.data.DataAdapter, err)
 		return nil, err
 	} else {
-		r := usecase.ConstructionRunnerEntity{ContainerID: cid,
-			ConstructionID: c.data.ID}
+		r := usecase.ConstructionRunnerEntity{
+			Name:           c.data.Name + "_data",
+			ContainerID:    cid,
+			ConstructionID: c.data.ID,
+		}
 		c.data.Runners = append(c.data.Runners, &r)
 	}
-
-	if cid, err := d.RunContainer(ctx, c.data.SchemaAdapter, ""); err != nil {
-		ctx.Logger.Error("can't start "+c.data.DataAdapter, err)
-		if err = d.RemoveContainer(ctx, c.data.Runners[1].ContainerID); err != nil {
+	// step 2  schema data
+	if cid, err := c.adapter.RunContainer(ctx, c.data.SchemaAdapter, c.data.Name+"_schema"); err != nil {
+		ctx.Logger.Error("can't start "+c.data.SchemaAdapter, err)
+		if err = c.adapter.RemoveContainer(ctx, c.data.Runners[0].ContainerID); err != nil {
+			ctx.Logger.Error("can't remove "+c.data.Runners[0].ContainerID, err)
+			return nil, err
+		}
+		return nil, err
+	} else {
+		r := usecase.ConstructionRunnerEntity{
+			Name:           c.data.Name + "_schema",
+			ContainerID:    cid,
+			ConstructionID: c.data.ID,
+		}
+		c.data.Runners = append(c.data.Runners, &r)
+	}
+	// step 3 alarm data
+	if cid, err := c.adapter.RunContainer(ctx, c.data.SchemaAdapter, c.data.Name+"_alarm"); err != nil {
+		ctx.Logger.Error("can't start "+c.data.AlarmAdapter, err)
+		if err = c.adapter.RemoveContainer(ctx, c.data.Runners[0].ContainerID); err != nil {
+			ctx.Logger.Error("can't remove "+c.data.Runners[0].ContainerID, err)
+			return nil, err
+		}
+		if err = c.adapter.RemoveContainer(ctx, c.data.Runners[1].ContainerID); err != nil {
 			ctx.Logger.Error("can't remove "+c.data.Runners[1].ContainerID, err)
 			return nil, err
 		}
 		return nil, err
 	} else {
-		r := usecase.ConstructionRunnerEntity{ContainerID: cid,
-			ConstructionID: c.data.ID}
+		r := usecase.ConstructionRunnerEntity{
+			Name:           c.data.Name + "_alarm",
+			ContainerID:    cid,
+			ConstructionID: c.data.ID,
+		}
 		c.data.Runners = append(c.data.Runners, &r)
+	}
+
+	c.data.Status = usecase.ConstructionStatusRunning
+	_, err = c.repo.UpdateOrInsert(ctx, c.data)
+	if err != nil {
+		ctx.Logger.Error("can't update construction id="+c.data.Name, err)
+		return nil, err
 	}
 
 	return nil, nil
@@ -102,6 +138,7 @@ func (c *Construction) StopHandle(ctx *gofr.Context) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
+	// TODO stop
 	return nil, nil
 }
 
@@ -111,6 +148,7 @@ func (c *Construction) RemoveHandle(ctx *gofr.Context) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
+	// TODO remove
 	return nil, nil
 }
 
@@ -124,10 +162,9 @@ func (c *Construction) StatusHandle(ctx *gofr.Context) (interface{}, error) {
 	if c.data.Status != usecase.ConstructionStatusRunning && c.data.Status != usecase.ConstructionStatusStopped {
 		return nil, nil
 	}
-	d := adapter.DockerAdapter{}
 	ss := make([]string, len(c.data.Runners))
 	for i, r := range c.data.Runners {
-		s, err := d.ShowContainerStatus(ctx, r.ContainerID)
+		s, err := c.adapter.ShowContainerStatus(ctx, r.ContainerID)
 		if err != nil {
 			ctx.Logger.Error("can't get status", err)
 			return nil, err
@@ -146,10 +183,9 @@ func (c *Construction) LogsHandle(ctx *gofr.Context) (interface{}, error) {
 	if c.data.Status != usecase.ConstructionStatusRunning {
 		return nil, nil
 	}
-	d := adapter.DockerAdapter{}
 	logs := make([][]string, len(c.data.Runners))
 	for i, r := range c.data.Runners {
-		log, err := d.ShowContainerLogs(ctx, r.ContainerID)
+		log, err := c.adapter.ShowContainerLogs(ctx, r.ContainerID)
 		if err != nil {
 			ctx.Logger.Error("can't get logs", err)
 			return nil, err

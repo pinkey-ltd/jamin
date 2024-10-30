@@ -65,6 +65,7 @@ func (d *DockerAdapter) RunContainer(c *gofr.Context, imageName string, name str
 		args = append(args, "--name "+name)
 	}
 	args = append(args, imageName)
+	c.Logger.Debug("run docker ", "podman", args)
 	cmd := exec.Command("podman", args...)
 	r, err := cmd.CombinedOutput()
 	if err != nil {
@@ -142,3 +143,5 @@ func (d *DockerAdapter) ShowContainerStatus(c *gofr.Context, containerId string)
 	}
 	return res, nil
 }
+
+var _ Adapter = (*DockerAdapter)(nil)

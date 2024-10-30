@@ -28,6 +28,7 @@ type ConstructionEntity struct {
 	Args            string
 	Schema          string
 	SchemaAdapter   string
+	AlarmAdapter    string
 	Runners         []*ConstructionRunnerEntity
 }
 
@@ -41,6 +42,7 @@ type ConstructionCURDEntity struct {
 	Args            string
 	Schema          string
 	SchemaAdapter   string
+	AlarmAdapter    string
 }
 
 func (c *ConstructionCURDEntity) RestPath() string {

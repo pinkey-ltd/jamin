@@ -12,6 +12,7 @@ const createTableConstructionSQL = `CREATE TABLE mqtt_construction (
 	args TEXT NOT NULL,
 	schema TEXT NOT NULL,
 	schema_adapter VARCHAR(255),
+	alarm_adapter VARCHAR(255),
 );`
 
 func createTableConstruction() migration.Migrate {

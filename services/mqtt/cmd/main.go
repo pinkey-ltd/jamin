@@ -27,7 +27,12 @@ func main() {
 		app.Logger().Error(err, "failed to add Construction REST handlers")
 	}
 	// Construction Actions
-	constructionService := service.NewConstruction(&repo.ConstructionPGRepository{}, nil)
+	podmanClient, err := adapter.NewPodmanAdapter()
+	if err != nil {
+		app.Logger().Error(err, "failed to initialize podman client")
+		panic(err)
+	}
+	constructionService := service.NewConstruction(&repo.ConstructionPGRepository{}, nil, podmanClient)
 	app.GET("/construction/{id}/test", constructionService.TestHandle)
 	app.GET("/construction/{id}/start", constructionService.StartHandle)
 	app.GET("/construction/{id}/stop", constructionService.StopHandle)
