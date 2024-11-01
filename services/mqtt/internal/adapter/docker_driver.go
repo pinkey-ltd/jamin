@@ -46,6 +46,11 @@ func queryDocker(c *gofr.Context, args []string, query string) (interface{}, err
 // DockerAdapter provides an interface for interacting with Docker or Podman to manage containers and images.
 type DockerAdapter struct{}
 
+func (d *DockerAdapter) StartContainer(c *gofr.Context, containerId string) (bool, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (d *DockerAdapter) RemoveImage(c *gofr.Context, imageId string) (interface{}, error) {
 	cmd := exec.Command("podman", "rmi", imageId)
 	err := cmd.Run()
@@ -77,14 +82,14 @@ func (d *DockerAdapter) RunContainer(c *gofr.Context, imageName string, name str
 	return res, nil
 }
 
-func (d *DockerAdapter) StopContainer(c *gofr.Context, containerId string) (interface{}, error) {
+func (d *DockerAdapter) StopContainer(c *gofr.Context, containerId string) (bool, error) {
 	cmd := exec.Command("podman", "stop", containerId)
 	err := cmd.Run()
 	if err != nil {
 		c.Logger.Error(err, "failed to exec docker stop container ", containerId)
-		return nil, err
+		return false, err
 	}
-	return nil, nil
+	return true, nil
 }
 
 func (d *DockerAdapter) RemoveContainer(c *gofr.Context, containerId string) error {

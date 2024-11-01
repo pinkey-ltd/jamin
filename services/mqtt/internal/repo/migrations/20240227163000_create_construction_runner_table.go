@@ -8,7 +8,6 @@ const createTableConstructionRunningSQL = `CREATE TABLE mqtt_construction_runnin
 	container_id VARCHAR(64) NOT NULL,
 	construction_id BIGINT NOT NULL,
 	status VARCHAR(20) NOT NULL,
-	comments TEXT,
 	CONSTRAINT fk_construction_id 
 		FOREIGN KEY(construction_id) 
 		REFERENCES mqtt_construction(id) 

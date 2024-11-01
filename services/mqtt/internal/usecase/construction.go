@@ -58,6 +58,4 @@ type ConstructionRunnerEntity struct {
 	Name           string
 	ContainerID    string
 	ConstructionID int64
-	Status         string
-	Comments       string
 }
