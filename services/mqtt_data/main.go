@@ -30,6 +30,7 @@ import (
 
 var appName string
 var initialled bool = false
+var tableName string
 
 type Schema struct {
 	Time time.Time       `json:"time"`
@@ -41,6 +42,7 @@ func main() {
 
 	// ENVs
 	appName = app.Config.GetOrDefault("APP_NAME", "test_data")
+	tableName = app.Config.GetOrDefault("DB_TABLE_NAME", "mqtt_telemetries")
 	// initial db pre 30 seconds
 	app.AddCronJob("*/30 * * * * *", "init", initDB)
 
@@ -113,7 +115,7 @@ func transformData(c *gofr.Context) {
 		}
 	}
 	var res []Schema
-	sql := "SELECT * FROM mqtt_telemetries WHERE time > '" + lastTimeStamp.In(loc).Format("2006-01-02 15:04:05") + "';"
+	sql := "SELECT * FROM " + tableName + " WHERE time > '" + lastTimeStamp.In(loc).Format("2006-01-02 15:04:05") + "';"
 	rows, err := c.SQL.QueryContext(c, sql)
 	if err != nil {
 		c.Logger.Error(err, "get raw data failed")

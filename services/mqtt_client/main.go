@@ -34,7 +34,7 @@ func main() {
 	app := gofr.New()
 
 	// Custom ENV
-	tableName = app.Config.GetOrDefault("DB_TABLE_NAME", "mqtt_test_telemetries")
+	tableName = app.Config.GetOrDefault("DB_TABLE_NAME", "mqtt_telemetries")
 	topic := app.Config.GetOrDefault("MQTT_TOPIC", "openapi-test/1")
 	// Add migrations to run
 	app.Migrate(migrations.All(tableName))
